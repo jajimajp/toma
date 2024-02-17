@@ -1,3 +1,7 @@
+> [!NOTE]
+> This software is a customized version of Toma, designed to produce output that is easier to parse.
+> The original version can be found here: https://www.jaist.ac.jp/project/maxcomp.
+
 # Toma
 
 Toma is a theorem prover for first-order equational systems,
