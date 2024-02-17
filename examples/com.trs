@@ -1,0 +1,4 @@
+(VAR x y)
+(RULES
+f(x, y) -> f(y, x)
+)

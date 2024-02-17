@@ -1,0 +1,7 @@
+cnf(rev_nil, axiom, ( rev(nil) = nil ) ).
+cnf(rev_cons, axiom, ( rev(cons(X,L)) = cons(last(X, L), rev2(X, L)) ) ).
+cnf(last_z_nil, axiom, ( last(z, nil) = z ) ).
+cnf(last_sX_nil, axiom, ( last(s(X), nil) = s(X) ) ).
+cnf(last_cons, axiom, ( last(X, cons(Y,L)) = last(Y, L) ) ).
+cnf(rev2_nil, axiom, ( rev2(X, nil) = nil ) ).
+cnf(rev2_cons, axiom, ( rev2(X, cons(Y, L)) = rev(cons(X, rev2(Y, L)))  ) ).

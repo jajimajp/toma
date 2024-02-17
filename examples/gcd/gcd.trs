@@ -1,0 +1,13 @@
+(VAR X Y)
+(RULES
+le(z, Y) -> true
+le(s(X), z) -> false
+le(s(X), s(X)) -> le(X, Y)
+minus(X, z) -> X
+minus(s(X), s(Y)) -> minus(X, Y)
+gcd(z, Y) -> Y
+gcd(s(X), z) -> s(X)
+gcd(s(X), s(Y)) -> if_gcd(le(Y, X), s(X), s(Y))
+if_gcd(true, s(X), s(Y)) -> gcd(minus(X, Y), s(Y))
+if_gcd(false, s(X), s(Y)) -> gcd(minus(Y, X), s(X))
+)

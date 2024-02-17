@@ -1,0 +1,16 @@
+# CoCo 2023 submission
+
+Note that starexec_description.txt must not contain hyphen (-).
+
+$ cd Toma0.5
+$ zip -r Toma0.5.zip \*
+
+## sample-problem
+
+$ cd sample-problem
+$ zip -r sample-problem.zip \*
+
+## COPS_INF
+
+$ cd COPS_INF
+$ zip -r COPS_INF.zip \*

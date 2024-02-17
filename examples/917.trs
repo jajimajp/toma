@@ -1,0 +1,11 @@
+(PROBLEM INFEASIBILITY)
+(COMMENT COPS 797)
+(VAR x)
+(RULES
+ f(x,x) -> c
+  a -> b
+  b -> a
+)
+(CONDITION f(a,c) == a)
+(COMMENT submitted by: Raul Gutierrez and Salvador Lucas
+)

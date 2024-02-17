@@ -1,0 +1,47 @@
+
+<HR><!------------------------------------------------------------------------>
+<H2>Toma 0.4</H2>
+Teppei Saito<BR>
+Japan Advanced Institute of Science and Technology, Japan
+
+<H3>Architecture</H3>
+
+Toma 0.4 is an automatic equational theorem prover. 
+It proves unsatisfiability of a UEQ problem as follows: 
+A given problem is transformed into a word problem whose validity entails 
+unsatisfiability of the original problem. 
+The word problem is solved by a new variant of maximal (ordered) completion 
+[<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=WM18">WM18</A>,
+<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=Hir21">Hir21</A>].
+
+<H3>Strategies</H3>
+
+Toma performs ordered completion in the following way:
+(1) Given an equational system E, the tool constructs a lexicographic path 
+order > that maximizes reducibility of the ordered rewrite system (E, >) 
+[<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=WM18">WM18</A>].
+(2) Using the order >, the tool runs ordered completion 
+[<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=BDP89">BDP89</A>] on E without the 
+deduce rule (critical pair generation). 
+Such a run eventually ends with an inter-reduced version (E', >).
+(3) Then the tool checks joinability of the goal.
+If the goal is joinable with respect to (E', >), the tool outputs the proof and terminates.
+Otherwise, assigning the union of E' and a set of critical pairs of (E', >) 
+to E, the tool goes back to the first step (1).
+After a certain number of iterations of the loop,
+the tool skips the order generation step (1) and repeats only (2)(3) with a fixed lexicographic path order.
+
+<H3>Implementation</H3>
+
+Toma is written in Haskell.
+Z3 is used to solve maximization problems of reducibility.
+The source code is available at: 
+<PRE>    <A HREF="https://www.jaist.ac.jp/project/maxcomp/">https://www.jaist.ac.jp/project/maxcomp/</A>
+</PRE>
+
+<H3>Expected Competition Performance</H3>
+
+Toma is still in the experimental stage and unable to compete with matured 
+tools. The tool would solve several easy problems from the categories BOO, GRP and RNG.
+
+<HR><!------------------------------------------------------------------------>

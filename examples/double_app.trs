@@ -1,0 +1,10 @@
+(VAR x y)
+(RULES
+@(@(add, 0), y) -> y
+@(@(add, @(s, x)), y) -> @(s, @(@(add, x), y))
+@(double, x) -> @(@(add, x), x)
+)
+(COMMENT
+This TRS is complete as it is.  
+Not compatible with gwpo01 and gwpoN of Toma
+)

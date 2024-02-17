@@ -1,0 +1,7 @@
+(VAR x y l)
+(RULES
+rev(nil) -> nil
+rev(cons(x, l)) -> cons(last(x, l), rev(l))
+last(x, nil) -> x
+last(x, cons(y, l)) -> last(y, l)
+)

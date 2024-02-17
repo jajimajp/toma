@@ -1,0 +1,15 @@
+(VAR x y z)
+(RULES
+a(cur(x),y) -> cur(a(x, p(one,a(y,up))))
+a(p(x,y), z) -> p(a(x,z),a(y, z))
+a(a(x, y), z) -> a(x, a(y, z))
+a(i, x) -> x
+a(one, i) -> one
+a(up, i) -> up
+a(one, p(x, y)) -> x
+a(up, p(x, y)) -> y
+)
+(COMMENT
+See TeReSe 6.5.42.
+GWPO proofs require mix interpretation (max and polyonominals)?
+)

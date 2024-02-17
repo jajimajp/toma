@@ -1,0 +1,8 @@
+(VAR x y)
+(RULES
+  m(x, 0) -> x
+  m(0, y) -> 0
+  m(s(x), s(y)) -> m(x, y)
+  d(0, s(y)) -> 0
+  d(s(x), s(y)) -> s(d(m(x, y), s(y)))
+)

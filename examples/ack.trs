@@ -1,0 +1,6 @@
+(VAR x y)
+(RULES
+a(0, y) -> s(y)
+a(s(x), 0) -> a(x, s(0))
+a(s(x), s(y)) -> a(x, a(s(x), y))
+)

@@ -1,0 +1,6 @@
+(VAR x y)
+(RULES
+s(p(x)) -> x
+p(s(x)) -> x
++(s(x), y) -> s(+(x, y))
+)

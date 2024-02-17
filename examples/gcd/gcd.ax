@@ -1,0 +1,10 @@
+cnf(le_z, axiom, ( le(z, Y) = true ) ).
+cnf(le_s_z, axiom, ( le(s(X), z) = false ) ).
+cnf(le_s_s, axiom, ( le(s(X), s(Y)) = le(X, Y) ) ).
+cnf(minus_z, axiom, ( minus(X, z) = X ) ).
+cnf(minus_s_s, axiom, ( minus(s(X), s(Y)) = minus(X, Y) ) ).
+cnf(gcd_z, axiom, ( gcd(z, Y) = Y ) ).
+cnf(gcd_s_z, axiom, ( gcd(s(X), z) = s(X) ) ).
+cnf(gcd_s_s, axiom, ( gcd(s(X), s(Y)) = if_gcd(le(Y, X), s(X), s(Y)) ) ).
+cnf(if_gcd_true, axiom, ( if_gcd(true, s(X), s(Y)) = gcd(minus(X, Y), s(Y)) ) ).
+cnf(if_gcd_false, axiom, ( if_gcd(false, s(X), s(Y)) = gcd(minus(Y, X), s(X)) ) ).

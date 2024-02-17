@@ -1,0 +1,19 @@
+(VAR x)
+(RULES
+f1(g1(i1(x))) -> g1(i1(f1(g1(i2(x)))))
+f2(g2(i2(x))) -> g2(i2(f2(g2(i1(x)))))
+g1(a) -> a
+g2(a) -> a
+h1(g1(i1(x))) -> g1(i1(x))
+h2(g2(i2(x))) -> g2(i2(x))
+h1(a) -> a
+h2(a) -> a
+f1(a) -> a
+f2(a) -> a
+i1(a) -> a
+i2(a) -> a
+)
+(COMMENT
+According to Devie 1991,
+No ground total reduction order can complete this system.
+)

@@ -1,0 +1,4 @@
+cnf(add_z, axiom, (add(z, Y) = Y)).
+cnf(add_s, axiom, (add(s(X), Y) = s(add(X, Y)))).
+cnf(mult_z, axiom, (mult(z, Y) = z)).
+cnf(mult_s, axiom, (mult(s(X), Y) = add(mult(X, Y), Y))).

@@ -1,0 +1,10 @@
+(VAR )
+(RULES
+a -> b
+f(b) -> g(a)
+h(a) -> h(f(a))
+)
+(COMMENT
+phd thesis by Cristina Borralleras
+Example 4.1.10
+)

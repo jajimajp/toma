@@ -1,0 +1,3 @@
+#!/bin/bash
+
+PATH=.:$PATH ./toma --casc $1

@@ -1,0 +1,9 @@
+cnf(le_z, axiom, ( le(z, Y) = true ) ).
+cnf(le_s_z, axiom, ( le(s(X), z) = false ) ).
+cnf(le_s_s, axiom, ( le(s(X), s(Y)) = le(X, Y) ) ).
+cnf(isort_nil, axiom, ( isort(nil) = nil ) ).
+cnf(isort_cons, axiom, ( isort(cons(X, L)) = insert(X, isort(L)) ) ).
+cnf(insert_nil, axiom, ( insert(X, nil) = cons(X, nil) ) ).
+cnf(insert_cons, axiom, ( insert(X, cons(Y, L)) = insert_if(le(X, Y), X, cons(Y, L)) ) ).
+cnf(insert_if_true, axiom, ( insert_if(true, X, cons(Y, L)) = cons(X, cons(Y, L)) ) ).
+cnf(insert_if_false, axiom, ( insert_if(false, X, cons(Y, L)) = cons(Y, insert(X, L)) ) ).

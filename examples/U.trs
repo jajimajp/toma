@@ -1,0 +1,8 @@
+(VAR X Y Z)
+(RULES
+a(a(k,X),Y) -> X
+a(i,X) -> X
+a(a(a(s, a(k, a(s, i))), a(a(s, i),i)), x) -> a(a(a(k, a(s, i)), x), a(a(a(s, i),i), x))
+a(a(a(s, i), i), x) -> a(a(i, x), a(i, x))
+a(a(a(s, i), a(x, x)), y) -> a(a(i, y), a(a(x,x), y))
+)

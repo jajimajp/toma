@@ -1,0 +1,17 @@
+# CASC 2023 submission
+
+Note that starexec_description.txt must not contain hyphen (-).
+
+$ cd Toma0.4
+$ zip -r Toma0.4.zip *
+
+## sample-problem
+
+$ cd sample-problems
+$ zip -r sample-problems.zip *
+
+## include test
+$ zip -r include-test.zip include-test
+
+## Axioms
+$ zip -r Axioms.zip Axioms

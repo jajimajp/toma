@@ -1,0 +1,5 @@
+cnf(minus_z_left, axiom, (minus(z, Y) = z) ) .
+cnf(minus_z_right, axiom, (minus(X, z) = X) ) .
+cnf(minus_s, axiom, (minus(s(X), s(Y)) = minus(X, Y)) ) .
+cnf(div_z, axiom, (div(z, s(Y)) = z) ) .
+cnf(div_s, axiom, (div(s(X), s(Y)) = s(div(minus(X, Y), s(Y)))) ) .

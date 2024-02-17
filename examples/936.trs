@@ -1,0 +1,14 @@
+(PROBLEM INFEASIBILITY)
+(COMMENT COPS 547)
+(CONDITIONTYPE ORIENTED)
+(VAR x)
+(RULES
+ f(x) -> a | x == a
+  f(x) -> b | x == b
+)
+(VAR x)
+(CONDITION x == a, x == b)
+(COMMENT doi:10.4230/LIPIcs.FSCD.2016.29
+[90] Example 3
+submitted by: Raul Gutierrez and Salvador Lucas
+)
