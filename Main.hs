@@ -351,6 +351,15 @@ showAxioms :: [PT.TermPair] -> BSB.Builder
 showAxioms axs =
   mconcat (List.intersperse (BSB.string7 "\n") [ PT.showTerm s <> BSB.string7 " = " <> PT.showTerm t | (s, t) <- axs ])
 
+-- show axioms parse-easy format
+-- print index of the axiom
+showAxiomsParsable :: TermPrinter -> ES -> BSB.Builder
+showAxiomsParsable tp axs =
+  mconcat (List.intersperse (BSB.string7 "\n") [ show tp e | e <- axs ])
+  where show :: TermPrinter -> E -> BSB.Builder
+        show p (E { eqn = (l, r), eqn_id = i, eqn_derivation = d  })
+          = (BSB.intDec i) <> (BSB.string7 ": ") <> Term.showTerm p l <> (BSB.string7 " = ") <> Term.showTerm p r <> (BSB.string7 ".")
+
 showNegatedLiteral :: PT.TermPair -> BSB.Builder
 showNegatedLiteral (s, t) = PT.showTerm s <> BSB.string7 " != " <> PT.showTerm t
 
@@ -530,14 +539,14 @@ handleTermination _fname _conf = notSupported
 --     Right (trs, _mu) ->
 --       terminationChecker conf trs
 
-printCompletionProof :: TermPrinter -> [PT.TermPair] -> Proof -> IO ()
-printCompletionProof tp es (Prover.Join { proof_goal, proof_es, proof_deleted_es}) = do
+printCompletionProof :: TermPrinter -> ES -> Proof -> IO ()
+printCompletionProof tp _ (Prover.Join { proof_goal, proof_es, proof_deleted_es}) = do
   putStrLn "FAIL"
   putStrLn "fake goal joined. someting is wrong."
 printCompletionProof tp es (Prover.Complete { proof_es, proof_reduction_order_param, proof_deleted_es }) = do
   putStrLn "Completed"
   putStrLn "axioms:"
-  BSB.hPutBuilder stdout (showAxioms es <> BSB.string7 "\n")
+  BSB.hPutBuilder stdout (showAxiomsParsable tp es <> BSB.string7 "\n")
   putStrLn "Here is an equational proof:"
   let sorted_es = (sortById (proof_es ++ proof_deleted_es))
   -- BSB.hPutBuilder stdout (showES tp (sortById (relevant (eqn_id proof_goal) (proof_goal : proof_es ++ proof_deleted_es))) <> BSB.string7 "\n")
@@ -565,7 +574,7 @@ handleCompletionWithParsableOutput _fname _conf = do
       let es = axioms [ toTermPair fd vd e | e <- pes ]
       let goal' = toTermPair fd vd skolemized_goal
       p <- prove (setTermPrinter tp _conf) goal' es
-      printCompletionProof tp pes p
+      printCompletionProof tp es p
 
 dispatch :: (Mode, Prover.Config) -> IO ()
 dispatch (Help, _conf) = handleHelp
