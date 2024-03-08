@@ -1,17 +1,17 @@
 module TRSParser (readTRSFile) where
 
 import Data.List
--- import Term
 import ParserTerm
-import TRS
-import Substitution
 import Text.ParserCombinators.Parsec
 
-variables :: ParserTerm.Term -> [ParserTerm.Var]
+type TRS = [TermPair]
+type ReplacementMap = [(String, [Int])]
+
+variables :: Term -> [Var]
 variables (V x)    = [x]
 variables (F _ ts) = nub [ x | t <- ts, x <- TRSParser.variables t ]
 
-variablesInTRS :: TRS -> [ParserTerm.Var]
+variablesInTRS :: TRS -> [Var]
 variablesInTRS trs =
   nub [ x | (l, r) <- trs, t <- [l, r], x <- TRSParser.variables t ]
 
@@ -71,24 +71,24 @@ parseFunction = do
   keyword ")"
   return (F f t)
 
-parseRule :: Parser Rule
+parseRule :: Parser TermPair
 parseRule = do
   l <- parseTerm
   keyword "->"
   r <- parseTerm
   return (l, r)
 
-parseVAR :: Parser ([String], ReplacementMap,TRS)
+parseVAR :: Parser ([String], ReplacementMap, TRS)
 parseVAR = do
   keyword "VAR"
   xs <- many identifier
-  return (xs,[], [])
+  return (xs, [], [])
 
-parseRULES :: Parser ([String], ReplacementMap,TRS)
+parseRULES :: Parser ([String], ReplacementMap, TRS)
 parseRULES = do
   keyword "RULES"
   rs <- many parseRule
-  return ([],[], rs)
+  return ([], [], rs)
 
 parseSTRATEGY' :: Parser (String, [Int])
 parseSTRATEGY' = do

@@ -7,7 +7,7 @@ import PE
 import PES
 import UEQParser
 import INFParser
--- import TRSParser
+import TRSParser
 import SplitIf
 import Prover
 import Util
@@ -30,6 +30,7 @@ data Mode = UEQ String
           | Waldmeister String
           | OrderedCompletion String
           | Termination String (ReductionOrder.Class)
+          | CompletionWithParsableOutput String
 
 -- HACK: stub
 emptyTermPrinter :: TermPrinter
@@ -100,6 +101,7 @@ parseArgs' ("--lpo" : args) m c =
 -- parseArgs' ("--gwpoN" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = GWPON, verbose = verbose c})
 -- parseArgs' ("--wpo" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = WPO, verbose = verbose c})
 -- parseArgs' ("--lpo-via-gwpo" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = LPOviaGWPO, verbose = verbose c})
+parseArgs' ("--completion-with-parsable-output" : fname : args) _ c = parseArgs' args (CompletionWithParsableOutput fname) c
 parseArgs' ("--verbose" : args) m c =
   parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = order_class c, verbose = True, termPrinter = termPrinter c, groundCompletion = groundCompletion c, n_skip_order_search = n_skip_order_search c })
 parseArgs' ("--v" : args) m c =
@@ -156,6 +158,8 @@ handleHelp = do
   -- putStrLn "$ toma --termination ack.trs --wpo           # WPO with linear polynomial interpretation over N"
   -- putStrLn "$ toma --termination ack.trs --lpo-via-gwpo  # LPO simulation via GWPO"
   putStrLn "$ toma inverse_unit.p --skip-order-search 10 # order search is skipped after 10 iteration.  by default order search is never skippped."
+  putStrLn "ordered completion with various reduction orders, with easy-to-parse output of completion."
+  putStrLn "$ toma --completion-with-parsable-output group.trs"
 
 -- printTPTPProof :: PES -> Proof -> IO ()
 -- printTPTPProof pes (Prover.Join { proof_goal, proof_es, proof_deleted_es }) = do
@@ -249,14 +253,12 @@ waldmeister pes goal@(s, t) = (eqAxiom : gAxiom : pes, (tTerm, fTerm))
     gAxiom = (PT.F eqSymbol [s, t], fTerm)
 
 -- add fake goal for ordered completion
--- fakeGoal :: PES -> PE
--- fakeGoal pes = (tTerm, fTerm)
---   where
---     fs = functionsInES pes
---     tSymbol = head [ c | c <- syms "__true" , notElem c fs]
---     fSymbol = head [ c | c <- syms "__false" , notElem c fs]
---     tTerm = F tSymbol []
---     fTerm = F fSymbol []
+-- TODO: If there is variable with the same name as __true or __false, 
+--       we need to rename the variable.
+fakeGoal :: PT.TermPair
+fakeGoal =
+  ( PT.F "___true"  []
+  , PT.F "___false" [])
 
 includeDirectories :: IO [String]
 includeDirectories = do
@@ -528,6 +530,43 @@ handleTermination _fname _conf = notSupported
 --     Right (trs, _mu) ->
 --       terminationChecker conf trs
 
+printCompletionProof :: TermPrinter -> [PT.TermPair] -> Proof -> IO ()
+printCompletionProof tp es (Prover.Join { proof_goal, proof_es, proof_deleted_es}) = do
+  putStrLn "FAIL"
+  putStrLn "fake goal joined. someting is wrong."
+printCompletionProof tp es (Prover.Complete { proof_es, proof_reduction_order_param, proof_deleted_es }) = do
+  putStrLn "Completed"
+  putStrLn "axioms:"
+  BSB.hPutBuilder stdout (showAxioms es <> BSB.string7 "\n")
+  putStrLn "Here is an equational proof:"
+  let sorted_es = (sortById (proof_es ++ proof_deleted_es))
+  -- BSB.hPutBuilder stdout (showES tp (sortById (relevant (eqn_id proof_goal) (proof_goal : proof_es ++ proof_deleted_es))) <> BSB.string7 "\n")
+  BSB.hPutBuilder stdout (showES tp sorted_es <> BSB.string7 "\n")
+  putStrLn "ES:"
+  BSB.hPutBuilder stdout (showOTRS tp (param2ord proof_reduction_order_param) proof_es <> BSB.string7 "\n")
+printCompletionProof _ _ Failure = putStrLn "% SZS status GaveUp : proof failed"
+
+handleCompletionWithParsableOutput :: String -> Prover.Config -> IO ()
+handleCompletionWithParsableOutput _fname _conf = do
+  result <- readTRSFile _fname
+  case result of
+    Left e -> do
+      putStdErr "ERROR"
+      putStdErr (show e)
+    Right (pes, _) -> do
+      let fs = PT.functionsInES pes
+      let skolemized_goal = skolemize fs fakeGoal
+      let fs' = PT.functionsInES (fakeGoal : pes)
+      let vs = PT.varsInES pes
+      let fd = zip fs' [0..]
+      let vd = zip vs [0..]
+      let fd' = [ (f', BSB.string7 f) | (f, f') <- fd ]
+      let tp = (Map.fromList fd', BSB.string7 "X")
+      let es = axioms [ toTermPair fd vd e | e <- pes ]
+      let goal' = toTermPair fd vd skolemized_goal
+      p <- prove (setTermPrinter tp _conf) goal' es
+      printCompletionProof tp pes p
+
 dispatch :: (Mode, Prover.Config) -> IO ()
 dispatch (Help, _conf) = handleHelp
 dispatch (UEQ fname, conf) = handleUEQ fname conf
@@ -536,6 +575,7 @@ dispatch (TPTP fname, conf) = handleTPTP fname conf
 dispatch (INF fname, conf) = handleINF fname conf
 dispatch (OrderedCompletion fname, conf) = handleOrderedCompletion fname conf
 dispatch (Termination fname tconf, _conf) = handleTermination fname tconf
+dispatch (CompletionWithParsableOutput fname, conf) = handleCompletionWithParsableOutput fname conf
 
 main :: IO ()
 main = do
