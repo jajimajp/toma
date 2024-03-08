@@ -22,7 +22,8 @@ instance Eq CPHeapItem where
 instance Ord CPHeapItem where
   compare (CPHeapItem (e1, _)) (CPHeapItem (e2, _)) = compare (PE.size e1) (PE.size e2)
 
-cp' :: TermOrder -> PE -> Bool -> PE -> Bool -> Position -> Maybe PE
+-- returns Maybe (new rule, superposition)
+cp' :: TermOrder -> PE -> Bool -> PE -> Bool -> Position -> Maybe (PE, Term)
 cp' gt rule1 o1 rule2 o2 p = do
   theta <- unify (subtermAt l1 p) l2
   let il1 = Substitution.substitute l1 theta
@@ -31,7 +32,7 @@ cp' gt rule1 o1 rule2 o2 p = do
   let ir2 = Substitution.substitute r2 theta
   guard (o1 || not (gt ir1 il1))
   guard (o2 || not (gt ir2 il2))
-  return (ir1, replace il1 ir2 p)
+  return ((ir1, replace il1 ir2 p), il1)
   where ((l1,r1), (l2,r2)) = PE.rename (rule1, rule2)
 
 rules :: E -> [PE]
@@ -51,8 +52,8 @@ cp2 gt es1 es2 = do
   p <- functionPositions l1
 -- if p is root position, then e1' and e2' are not variants.
   guard (p /= [] || not (PE.variant e1' e2'))
-  e <- maybeToList (cp' gt e1' (oriented e1) e2' (oriented e2) p)
-  return (e, CP i1 i2)
+  (e, sp) <- maybeToList (cp' gt e1' (oriented e1) e2' (oriented e2) p)
+  return (e, CP i1 i2 sp)
 
 h :: TermOrder -> ES -> CPHeap
 h gt es = H.fromList [ CPHeapItem c | c <- cp2 gt es es]

@@ -547,9 +547,8 @@ printCompletionProof tp es (Prover.Complete { proof_es, proof_reduction_order_pa
   putStrLn "Completed"
   putStrLn "axioms:"
   BSB.hPutBuilder stdout (showAxiomsParsable tp es <> BSB.string7 "\n")
-  putStrLn "Here is an equational proof:"
+  putStrLn "generated rules:"
   let sorted_es = (sortById (proof_es ++ proof_deleted_es))
-  -- BSB.hPutBuilder stdout (showES tp (sortById (relevant (eqn_id proof_goal) (proof_goal : proof_es ++ proof_deleted_es))) <> BSB.string7 "\n")
   BSB.hPutBuilder stdout (showES tp sorted_es <> BSB.string7 "\n")
   putStrLn "ES:"
   BSB.hPutBuilder stdout (showOTRS tp (param2ord proof_reduction_order_param) proof_es <> BSB.string7 "\n")

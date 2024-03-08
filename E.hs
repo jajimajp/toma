@@ -46,12 +46,12 @@ unorient (E { eqn, eqn_id, eqn_derivation })
 showE :: TermPrinter -> E -> BSB.Builder
 showE p (E { eqn = (l, r), eqn_id = i, eqn_derivation = d  })
   = (BSB.intDec i) <> (BSB.string7 ": ") <> showTerm p l <> (BSB.string7 " = ") <> showTerm p r <> (BSB.string7 ".\n") <>
-    showDerivation d
+    showDerivation p d
 
 -- dependency of derivation
 depE :: E -> [(Int, Int)]
 depE (E {eqn_derivation = Axiom}) = []
-depE (E {eqn_derivation = CP i1 i2, eqn_id = i })
+depE (E {eqn_derivation = CP i1 i2 _sp, eqn_id = i })
   = [(i, i1), (i, i2)]
 depE (E {eqn_derivation = Simp { original, rw_r, rw_l}, eqn_id = i})
   = (i, original) : [ (i, i') | i' <- rw_r ] ++ [ (i, i') | i' <- rw_l ]
