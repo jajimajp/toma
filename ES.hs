@@ -19,13 +19,16 @@ showES p es = mconcat (intersperse (BSB.string7 "\n") (map (showE p) es))
 
 showOTRS :: TermPrinter -> TermOrder -> ES -> BSB.Builder
 showOTRS _ _ [] = BSB.string7 ""
-showOTRS p gt (E { eqn = (s, t) } : es)
-  | s `gt` t = showTerm p s <> BSB.string7 " -> " <> showTerm p t <> BSB.string7 "\n" <>
+showOTRS p gt (E { eqn = (s, t), eqn_id } : es)
+  | s `gt` t = BSB.string7 (show eqn_id) <> BSB.string7 ": "
+               <> showTerm p s <> BSB.string7 " -> " <> showTerm p t <> BSB.string7 "\n" <>
                showOTRS p gt es
-  | t `gt` s = showTerm p t <> BSB.string7 " -> " <> showTerm p s <> BSB.string7 "\n" <>
+  | t `gt` s = BSB.string7 (show eqn_id) <> BSB.string7 ": "
+               <> showTerm p t <> BSB.string7 " -> " <> showTerm p s <> BSB.string7 "\n" <>
                showOTRS p gt es
-  | otherwise = showTerm p s <> BSB.string7 " = " <> showTerm p t <> BSB.string7 "\n" <>
-                showOTRS p gt es
+  | otherwise = BSB.string7 (show eqn_id) <> BSB.string7 ": "
+               <> showTerm p s <> BSB.string7 " = " <> showTerm p t <> BSB.string7 "\n" <>
+               showOTRS p gt es
 
 maxId :: ES -> Int
 maxId es = maximum [ n | E {eqn_id = n} <- es ]
