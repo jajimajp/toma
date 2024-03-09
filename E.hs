@@ -44,9 +44,13 @@ unorient (E { eqn, eqn_id, eqn_derivation })
   = (E { eqn = eqn, eqn_id = eqn_id, eqn_orientation = Unoriented, eqn_derivation = eqn_derivation })
 
 showE :: TermPrinter -> E -> BSB.Builder
-showE p (E { eqn = (l, r), eqn_id = i, eqn_derivation = d  })
-  = (BSB.intDec i) <> (BSB.string7 ": ") <> showTerm p l <> (BSB.string7 " = ") <> showTerm p r <> (BSB.string7 ".\n") <>
+showE p (E { eqn = (l, r), eqn_id = i, eqn_derivation = d, eqn_orientation })
+  = (BSB.intDec i) <> (BSB.string7 ": ") <> showTerm p l <> (BSB.string7 orien) <> showTerm p r <> (BSB.string7 ".\n") <>
     showDerivation p d
+    where orien = case eqn_orientation of
+                    LR -> " -> "
+                    RL -> " <- "
+                    Unoriented -> " = "
 
 -- dependency of derivation
 depE :: E -> [(Int, Int)]
