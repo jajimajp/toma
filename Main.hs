@@ -545,6 +545,8 @@ printCompletionProof tp _ (Prover.Join { proof_goal, proof_es, proof_deleted_es}
   putStrLn "fake goal joined. someting is wrong."
 printCompletionProof tp es (Prover.Complete { proof_es, proof_reduction_order_param, proof_deleted_es }) = do
   putStrLn "Completed"
+  putStrLn "order:"
+  BSB.hPutBuilder stdout $ showReductionOrderParam (functionPrinter tp) proof_reduction_order_param <> BSB.string7 "\n"
   putStrLn "axioms:"
   BSB.hPutBuilder stdout (showAxiomsParsable tp es <> BSB.string7 "\n")
   putStrLn "generated rules:"
