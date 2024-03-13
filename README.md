@@ -37,6 +37,14 @@ shows `e^(-1) = e` is valid in the theory of group.
 
 For the help message, type `$ ./toma -h`.
 
+## What is changed from original version
+
+This customized version (v0.6+PARSABLE) comes with `--completion-with-parsable-output` option.
+
+```bash
+./toma --completion-with-parsable-output examples/group/group.trs
+```
+
 ## How to make StarExec package
 
 To run Toma on StarExec, every binary must be statically linked.
