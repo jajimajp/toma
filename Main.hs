@@ -539,6 +539,11 @@ handleTermination _fname _conf = notSupported
 --     Right (trs, _mu) ->
 --       terminationChecker conf trs
 
+rmdups :: ES -> ES
+rmdups [] = []
+rmdups (x@(E {eqn_id}):xs)   | eqn_id `List.elem` [eqn_id | E { eqn_id } <- xs]   = rmdups xs
+                | otherwise     = x : rmdups xs
+
 printCompletionProof :: TermPrinter -> ES -> Proof -> IO ()
 printCompletionProof tp _ (Prover.Join { proof_goal, proof_es, proof_deleted_es}) = do
   putStrLn "FAIL"
@@ -550,8 +555,7 @@ printCompletionProof tp es (Prover.Complete { proof_es, proof_reduction_order_pa
   putStrLn "axioms:"
   BSB.hPutBuilder stdout (showAxiomsParsable tp es <> BSB.string7 "\n")
   putStrLn "generated rules:"
-  let sorted_es = (sortById (proof_es ++ proof_deleted_es))
-  BSB.hPutBuilder stdout (showES tp sorted_es <> BSB.string7 "\n")
+  BSB.hPutBuilder stdout $ showES tp (sortById (rmdups (List.concat [relevant (eqn_id eqn) (proof_es ++ proof_deleted_es) | eqn <- proof_es]))) <> BSB.string7 "\n"
   putStrLn "ES:"
   BSB.hPutBuilder stdout (showOTRS tp (param2ord proof_reduction_order_param) proof_es <> BSB.string7 "\n")
 printCompletionProof _ _ Failure = putStrLn "% SZS status GaveUp : proof failed"
