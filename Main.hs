@@ -31,6 +31,7 @@ data Mode = UEQ String
           | OrderedCompletion String
           | Termination String (ReductionOrder.Class)
           | CompletionWithParsableOutput String
+          | Parsable String String
 
 -- HACK: stub
 emptyTermPrinter :: TermPrinter
@@ -102,6 +103,7 @@ parseArgs' ("--lpo" : args) m c =
 -- parseArgs' ("--wpo" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = WPO, verbose = verbose c})
 -- parseArgs' ("--lpo-via-gwpo" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = LPOviaGWPO, verbose = verbose c})
 parseArgs' ("--completion-with-parsable-output" : fname : args) _ c = parseArgs' args (CompletionWithParsableOutput fname) c
+parseArgs' ("--parsable" : goal : fname : args) _ c = parseArgs' args (Parsable goal fname) c
 parseArgs' ("--verbose" : args) m c =
   parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = order_class c, verbose = True, termPrinter = termPrinter c, groundCompletion = groundCompletion c, n_skip_order_search = n_skip_order_search c })
 parseArgs' ("--v" : args) m c =
@@ -160,6 +162,7 @@ handleHelp = do
   putStrLn "$ toma inverse_unit.p --skip-order-search 10 # order search is skipped after 10 iteration.  by default order search is never skippped."
   putStrLn "ordered completion with various reduction orders, with easy-to-parse output of completion."
   putStrLn "$ toma --completion-with-parsable-output group.trs"
+  putStrLn "$ toma --parsable \"x + e -> x\" group.trs"
 
 -- printTPTPProof :: PES -> Proof -> IO ()
 -- printTPTPProof pes (Prover.Join { proof_goal, proof_es, proof_deleted_es }) = do
@@ -581,6 +584,54 @@ handleCompletionWithParsableOutput _fname _conf = do
       p <- prove (setTermPrinter tp _conf) goal' es
       printCompletionProof tp es p
 
+printProofParsable :: TermPrinter -> (ES, PT.TermPair) -> Proof -> IO ()
+printProofParsable tp (es, goal) (Prover.Join { proof_goal, proof_es, proof_deleted_es}) = do
+  putStrLn "Success"
+  -- putStrLn "order:"
+  -- BSB.hPutBuilder stdout $ showReductionOrderParam (functionPrinter tp) proof_reduction_order_param <> BSB.string7 "\n"
+  putStrLn "axioms:"
+  BSB.hPutBuilder stdout (showAxiomsParsable tp es <> BSB.string7 "\n")
+  putStrLn "generated rules:"
+  BSB.hPutBuilder stdout $ showES tp (sortById (rmdups (List.concat [relevant (eqn_id eqn) (proof_es ++ proof_deleted_es) | eqn <- proof_es]))) <> BSB.string7 "\n"
+printProofParsable tp (es, _) (Prover.Complete { proof_es, proof_reduction_order_param, proof_deleted_es }) = do
+  putStrLn "Completed"
+  putStrLn "order:"
+  BSB.hPutBuilder stdout $ showReductionOrderParam (functionPrinter tp) proof_reduction_order_param <> BSB.string7 "\n"
+  putStrLn "axioms:"
+  BSB.hPutBuilder stdout (showAxiomsParsable tp es <> BSB.string7 "\n")
+  putStrLn "generated rules:"
+  BSB.hPutBuilder stdout $ showES tp (sortById (rmdups (List.concat [relevant (eqn_id eqn) (proof_es ++ proof_deleted_es) | eqn <- proof_es]))) <> BSB.string7 "\n"
+  putStrLn "ES:"
+  BSB.hPutBuilder stdout (showOTRS tp (param2ord proof_reduction_order_param) proof_es <> BSB.string7 "\n")
+printProofParsable _ _ Failure = putStrLn "% SZS status GaveUp : proof failed"
+
+handleParsable :: String -> String -> Prover.Config -> IO ()
+handleParsable goal fname _conf = do
+  result <- readTRSFile fname
+  case result of
+    Left e -> do
+      putStdErr "ERROR"
+      putStdErr (show e)
+    Right (pes, _) -> do
+      let vs = PT.varsInES pes
+      goal' <- TRSParser.parseSingleTRSRule goal vs
+      case goal' of 
+        Left e -> do
+          putStdErr "ERROR"
+          putStdErr (show e)
+        Right (goal', _rm) -> do
+          let fs = PT.functionsInES pes
+          let skolemized_goal = skolemize fs goal'
+          let fs' = PT.functionsInES (skolemized_goal : pes)
+          let fd = zip fs' [0..]
+          let vd = zip vs [0..]
+          let fd' = [ (f', BSB.string7 f) | (f, f') <- fd ]
+          let tp = (Map.fromList fd', BSB.string7 "X")
+          let es = axioms [ toTermPair fd vd e | e <- pes ]
+          let goal'' = toTermPair fd vd skolemized_goal
+          p <- prove (setTermPrinter tp _conf) goal'' es
+          printProofParsable tp (es, skolemized_goal) p
+
 dispatch :: (Mode, Prover.Config) -> IO ()
 dispatch (Help, _conf) = handleHelp
 dispatch (UEQ fname, conf) = handleUEQ fname conf
@@ -590,6 +641,7 @@ dispatch (INF fname, conf) = handleINF fname conf
 dispatch (OrderedCompletion fname, conf) = handleOrderedCompletion fname conf
 dispatch (Termination fname tconf, _conf) = handleTermination fname tconf
 dispatch (CompletionWithParsableOutput fname, conf) = handleCompletionWithParsableOutput fname conf
+dispatch (Parsable goal fname, conf) = handleParsable goal fname conf
 
 main :: IO ()
 main = do

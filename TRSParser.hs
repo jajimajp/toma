@@ -1,4 +1,4 @@
-module TRSParser (readTRSFile) where
+module TRSParser (readTRSFile, parseSingleTRSRule) where
 
 import Data.List
 import ParserTerm
@@ -134,3 +134,12 @@ parseTRS = do
 
 readTRSFile :: String -> IO (Either ParseError (TRS, ReplacementMap))
 readTRSFile path = parseFromFile parseTRS path
+-- [parseSingleTRSRule ruleString variables]
+-- example: parseSingleTRSRule "f(x) -> g(x)" ["x"]
+parseSingleTRSRule :: String -> [String] -> IO (Either ParseError (TermPair, ReplacementMap))
+parseSingleTRSRule rule vars =
+  case parse parseRule "parseSingleTRSRule" rule of
+    Left err -> return $ Left err
+    Right (l, r) -> do
+      let vs = head (convert vars [(l, r)])
+      return $ Right (vs, [])
