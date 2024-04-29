@@ -26,7 +26,7 @@ import Data.Monoid ((<>)) -- redundant, but for VSCode simple haskell integratio
 import System.IO
 
 -- NOTE: The prefix "proof_" is to avoid shadow-binding warnings.
-data Proof = Join { proof_goal :: E.E, proof_es :: ES, proof_deleted_es :: ES }
+data Proof = Join { proof_goal :: E.E, proof_es :: ES, proof_reduction_order_param :: ReductionOrderParam, proof_deleted_es :: ES }
            -- system is ground-complete but goal is not joinable.
            | Complete { proof_es :: ES, proof_reduction_order_param :: ReductionOrderParam , proof_deleted_es :: ES}
            | Failure -- not used for now
@@ -268,7 +268,7 @@ prove' args@(ProverArgs { conf, iteration_n, next_id, goal = goal@(s, t), initES
     then let
            d = Goal { rw_l = rw_s, rw_r = rw_t }
            g' = E.E { E.eqn = goal, E.eqn_id = next_id', E.eqn_derivation = d, E.eqn_orientation = E.Unoriented }
-          in return (Join { proof_goal = g', proof_es = oriented' ++ unoriented', proof_deleted_es =  next_deleted })
+          in return (Join { proof_goal = g', proof_es = oriented' ++ unoriented', proof_reduction_order_param = order_param, proof_deleted_es =  next_deleted })
     else if groundCompletion conf &&
             all (\(s'', t'') -> ReductionOrder.groundJoinable oriented' unoriented' order_param s'' t'') initES && -- ground equivalence and
             ReductionOrder.groundConfluent oriented' unoriented' order_param -- ground confluence

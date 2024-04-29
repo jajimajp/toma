@@ -114,7 +114,7 @@ parseArgs :: [String] -> (Mode, Prover.Config)
 parseArgs args = parseArgs' args Help defaultConfig
 
 version :: String
-version = "0.6+PARSABLE"
+version = "0.7+PARSABLE"
 
 notSupported :: IO ()
 notSupported = printf "not supported in the version %s.\n" version
@@ -162,7 +162,7 @@ handleHelp = do
   putStrLn "$ toma inverse_unit.p --skip-order-search 10 # order search is skipped after 10 iteration.  by default order search is never skippped."
   putStrLn "ordered completion with various reduction orders, with easy-to-parse output of completion."
   putStrLn "$ toma --completion-with-parsable-output group.trs"
-  putStrLn "$ toma --parsable \"x + e -> x\" group.trs"
+  putStrLn "$ toma --parsable \"+(x, e) -> x\" group.trs"
 
 -- printTPTPProof :: PES -> Proof -> IO ()
 -- printTPTPProof pes (Prover.Join { proof_goal, proof_es, proof_deleted_es }) = do
@@ -585,14 +585,15 @@ handleCompletionWithParsableOutput _fname _conf = do
       printCompletionProof tp es p
 
 printProofParsable :: TermPrinter -> (ES, PT.TermPair) -> Proof -> IO ()
-printProofParsable tp (es, goal) (Prover.Join { proof_goal, proof_es, proof_deleted_es}) = do
+printProofParsable tp (es, goal) (Prover.Join { proof_goal, proof_es, proof_reduction_order_param, proof_deleted_es}) = do
   putStrLn "Success"
-  -- putStrLn "order:"
-  -- BSB.hPutBuilder stdout $ showReductionOrderParam (functionPrinter tp) proof_reduction_order_param <> BSB.string7 "\n"
+  putStrLn "order:"
+  BSB.hPutBuilder stdout $ showReductionOrderParam (functionPrinter tp) proof_reduction_order_param <> BSB.string7 "\n"
   putStrLn "axioms:"
   BSB.hPutBuilder stdout (showAxiomsParsable tp es <> BSB.string7 "\n")
   putStrLn "generated rules:"
-  BSB.hPutBuilder stdout $ showES tp (sortById (rmdups (List.concat [relevant (eqn_id eqn) (proof_es ++ proof_deleted_es) | eqn <- proof_es]))) <> BSB.string7 "\n"
+  -- BSB.hPutBuilder stdout $ showES tp (sortById (rmdups (List.concat [relevant (eqn_id eqn) (proof_es ++ proof_deleted_es) | eqn <- proof_es]))) <> BSB.string7 "\n"
+  BSB.hPutBuilder stdout (showES tp (sortById (relevant (eqn_id proof_goal) (proof_goal : proof_es ++ proof_deleted_es))) <> BSB.string7 "\n")
 printProofParsable tp (es, _) (Prover.Complete { proof_es, proof_reduction_order_param, proof_deleted_es }) = do
   putStrLn "Completed"
   putStrLn "order:"
