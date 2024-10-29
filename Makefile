@@ -4,7 +4,7 @@ all:
 	ghc -O -Wall -Wno-unused-imports -o $(TOOL) Main
 
 clean:
-	rm -f *.hi *.o $(TOOL) 
+	rm -rf *.hi *.o $(TOOL) tmp
 
 archive:
 	git archive --format=tar --prefix=$(TOOL)/ HEAD | gzip > $(TOOL)-$(VERSION).tgz
