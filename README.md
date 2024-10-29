@@ -12,7 +12,7 @@ the successor of Tofu.
 1. Install:
 
 - GNU/Make
-- Glasgow Haskell Compiler 9.2.5 (or higher)
+- Glasgow Haskell Compiler 9.2.8 (or higher)
 - Z3 version 4.8.12 (or higher)
 
 2. `$ make` produces the executable `toma`.
