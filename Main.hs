@@ -22,7 +22,6 @@ import System.IO
 
 -- INF: CoCo infeasibility problem
 data Mode = UEQ String
-          | TPTP String
           | INF String
           | Help
           | Waldmeister String
@@ -53,15 +52,6 @@ cascConfig =
                   groundCompletion = False,
                   n_skip_order_search = Just 8 }
 
--- convertEquation :: PT.TermPair -> TPTPInput
--- convertEquation (l, r) = TPTP.CNF "some_equation" "axiom" [(True, Equation l r)]
-
--- convertGoal :: PT.TermPair -> TPTPInput
--- convertGoal (l, r) = TPTP.CNF "some_equation" "negated_conjecture" [(False, Equation l r)]
-
--- convertES :: [PT.TermPair] -> TPTP
--- convertES es = [ convertEquation e | e <- es ]
-
 -- TODO: hacky implementation
 parseArgs' :: [String] -> Mode -> Prover.Config -> (Mode, Prover.Config)
 parseArgs' [] m c = (m, c)
@@ -71,7 +61,6 @@ parseArgs' ("--help" : _) _ _ = (Help, defaultConfig)
 -- prover
 parseArgs' ("--casc" : fname : _) _ _ = (UEQ fname, cascConfig) -- config for CASC UEQ
 parseArgs' ("--ueq" : fname : args) _ c = parseArgs' args (UEQ fname) c
--- parseArgs' ("--tptp" : fname : args) _ c = parseArgs' args (TPTP fname) c
 parseArgs' ("--inf" : fname : args) _ c = parseArgs' args (INF fname) c
 parseArgs' ("--waldmeister" : fname : args) _ c = parseArgs' args (Waldmeister fname) c
 -- options
@@ -83,11 +72,6 @@ parseArgs' ("--no-simplification" : args) m c =
   parseArgs' args m (Config { inter_reduction = False, order_class = order_class c, verbose = verbose c, termPrinter = termPrinter c, groundCompletion = groundCompletion c, n_skip_order_search = n_skip_order_search c })
 parseArgs' ("--lpo" : args) m c =
   parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = LPO, verbose = verbose c, termPrinter = termPrinter c, groundCompletion = groundCompletion c, n_skip_order_search = n_skip_order_search c })
--- parseArgs' ("--gwpo" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = GWPO, verbose = verbose c})
--- parseArgs' ("--gwpo01" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = GWPO01, verbose = verbose c})
--- parseArgs' ("--gwpoN" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = GWPON, verbose = verbose c})
--- parseArgs' ("--wpo" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = WPO, verbose = verbose c})
--- parseArgs' ("--lpo-via-gwpo" : args) m c = parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = LPOviaGWPO, verbose = verbose c})
 parseArgs' ("--completion-with-parsable-output" : fname : args) _ c = parseArgs' args (CompletionWithParsableOutput fname) c
 parseArgs' ("--parsable" : goal : fname : args) _ c = parseArgs' args (Parsable goal fname) c
 parseArgs' ("--verbose" : args) m c =
@@ -109,14 +93,12 @@ handleHelp :: IO ()
 handleHelp = do
   putStrLn ("toma version " ++ version)
   putStrLn "Usage: toma <options> <file>"
-  putStrLn "<file> is in TPTP (UEQ) format or CoCo INF format."
-  -- putStrLn "<file> is in TPTP (UEQ) format, CoCo INF format or TRS format."
+  putStrLn "<file> is in TPTP (UEQ) format, CoCo INF format or TRS format."
   putStrLn "equational theorem proving: "
   putStrLn "$ toma inverse_unit.p        # TPTP UEQ format (simple skolemization)"
   putStrLn "$ toma --ueq  inverse_unit.p # TPTP UEQ format (simple skolemization)"
   putStrLn "$ toma --waldmeister inverse_unit.p # TPTP UEQ format (Waldmeister transformation)"
   putStrLn "$ toma --casc inverse_unit.p        # CASC UEQ mode" 
-  -- putStrLn "$ toma --tptp inverse_unit.p # TPTP format (split-if transformation)"
   putStrLn "$ toma --inf  936.trs        # CoCo INF format (split-if transformation)"
   putStrLn "debugging prover:"
   putStrLn "$ toma inverse_unit.p --verbose  # verbose output for equational reasoning"
@@ -124,79 +106,14 @@ handleHelp = do
   putStrLn "no simplification (or no inter-reduction):"
   putStrLn "$ toma inverse_unit.p --no-simplification"
   putStrLn "$ toma inverse_unit.p --no-inter-reduction"
-  -- putStrLn "default ordering is --lpo"
+  putStrLn "default ordering is --lpo"
   putStrLn "equational theorem proving with various reduciton orders"
   putStrLn "$ toma inverse_unit.p                # the same as --lpo"
   putStrLn "$ toma --lpo inverse_unit.p          # LPO"
-  -- putStrLn "$ toma --gwpo inverse_unit.p         # the same as --gwpo01"
-  -- putStrLn "$ toma --gwpoN inverse_unit.p        # GWPO with linear polynomial interpretation over N"
-  -- putStrLn "$ toma --gwpo01 inverse_unit.p       # GWPO with linear polynomial interpretation over {0, 1} for coefficients and N for constants"
-  -- putStrLn "$ toma --wpo inverse_unit.p          # WPO with linear polynomial interpretation over N"
-  -- putStrLn "$ toma --lpo-via-gwpo inverse_unit.p # LPO simulation via GWPO"
-  -- putStrLn "ordered maximal completion with various reduction orders: "
-  -- putStrLn "$ toma --ordered-completion group.trs          # LPO "
-  -- putStrLn "$ toma --ordered-completion group.trs --lpo    # LPO"
-  -- putStrLn "$ toma --ordered-completion group.trs --gwpo01 # GWPO with linear polynomial interpretation over {0, 1} for coefficients and N for constants"
   putStrLn "$ toma inverse_unit.p --skip-order-search 10 # order search is skipped after 10 iteration.  by default order search is never skippped."
   putStrLn "ordered completion with various reduction orders, with easy-to-parse output of completion."
   putStrLn "$ toma --completion-with-parsable-output group.trs"
   putStrLn "$ toma --parsable \"+(x, e) -> x\" group.trs"
-
--- printTPTPProof :: PES -> Proof -> IO ()
--- printTPTPProof pes (Prover.Join { proof_goal, proof_es, proof_deleted_es }) = do
---   putStrLn "% SZS status Unsatisfiable"
---   putStrLn "% SZS output start Proof"
---   putStrLn "The given problem is transformed into a word problem"
---   putStrLn "by the split-if encoding (Claessen and Smallbone, 2018)."
---   putStrLn "To show the unsatisfiability,"
---   putStrLn "it suffices to show that true__ = false__ is valid in the following ES:"
---   putStrLn (showPES pes)
---   putStrLn "This is an equational proof of true__ = false__:"
---   putStrLn (showES (sortById (relevant (eqn_id proof_goal) (proof_goal : proof_es ++ proof_deleted_es))))
---   putStrLn "% SZS output end Proof"
--- printTPTPProof pes (Prover.Complete { proof_es, proof_reduction_order_param }) = do
---   putStrLn "% SZS status Satisfiable"
---   putStrLn "% SZS output start Proof"
---   putStrLn "The given problem is transformed into a word problem"
---   putStrLn "by the split-if encoding (Claessen and Smallbone, 2018)."
---   putStrLn "To show the satisfiability,"
---   putStrLn "it suffices to show that true__ = false__ is not valid in the following ES:"
---   putStrLn (showPES pes)
---   putStrLn "The ES admits the following ground-complete ordered rewrite system:"
---   putStrLn (show proof_reduction_order_param)
---   putStrLn "ES:"
---   putStrLn (showOTRS (param2ord proof_reduction_order_param) proof_es)
---   putStrLn "Since true__ and false__ are not joinable in the ordered rewrite system,"
---   putStrLn " true__ = false__ is not valid."
---   putStrLn "% SZS output end Proof"
--- printTPTPProof _ Failure = putStrLn "% SZS status GaveUp : proof failed"
-
--- printTPTPTrivial :: IO ()
--- printTPTPTrivial = do
---   putStrLn "% SZS status Satisfiable"
---   putStrLn "% SZS output Proof"
---   putStrLn "% The given problem admits an trivial model."
---   putStrLn "% SZS output end Proof"
-
--- TODO: suppert 'include' from $TPTP 
-handleTPTP :: String -> Prover.Config -> IO ()
-handleTPTP _fname _conf = notSupported
--- handleTPTP fname conf = do
---   result <- readTPTP fname
---   case result of
---     Left e -> do
---       putStdErr "% SZS status SyntaxError"
---       putStdErr (show e)
---     Right tptp -> do
---       case splitIfTPTP tptp of
---         Nothing      -> do
---           putStdErr "% SZS status UsageError : The input contains a non-Horn-clause."
---         Just (es, goal@(s, t)) -> do
---           putStr (showTPTP (convertES es ++ [convertGoal goal]))
---           if s == t -- trivial model found
---             then printTPTPTrivial
---             else do p <- prove conf goal (axioms es)
---                     printTPTPProof es p
 
 separate :: [AnnotatedFormula] -> ([PT.TermPair], [PT.TermPair])
 separate [] = ([], [])
@@ -574,7 +491,6 @@ dispatch :: (Mode, Prover.Config) -> IO ()
 dispatch (Help, _conf) = handleHelp
 dispatch (UEQ fname, conf) = handleUEQ fname conf
 dispatch (Waldmeister fname, conf) = handleWaldmeister fname conf
-dispatch (TPTP fname, conf) = handleTPTP fname conf
 dispatch (INF fname, conf) = handleINF fname conf
 dispatch (CompletionWithParsableOutput fname, conf) = handleCompletionWithParsableOutput fname conf
 dispatch (Parsable goal fname, conf) = handleParsable goal fname conf
