@@ -12,7 +12,6 @@ import SplitIf
 import Prover
 import Util
 import ReductionOrder
--- import Termination
 import Text.Printf
 import System.Environment
 import ParserTerm as PT
@@ -22,13 +21,11 @@ import Data.Monoid ((<>)) -- redundant, but for VSCode simple haskell integratio
 import System.IO
 
 -- INF: CoCo infeasibility problem
--- Termination: termination checker
 data Mode = UEQ String
           | TPTP String
           | INF String
           | Help
           | Waldmeister String
-          | Termination String (ReductionOrder.Class)
           | CompletionWithParsableOutput String
           | Parsable String String
 
@@ -71,14 +68,6 @@ parseArgs' [] m c = (m, c)
 -- help
 parseArgs' ("-h" : _) _ _ =  (Help, defaultConfig)
 parseArgs' ("--help" : _) _ _ = (Help, defaultConfig)
--- termination
--- parseArgs' ("--termination" : fname : []) _ _ = (Termination fname ReductionOrder.GWPO, defaultConfig)
--- parseArgs' ("--termination" : fname : "--lpo" : []) _ _ = (Termination fname ReductionOrder.LPO, defaultConfig)
--- parseArgs' ("--termination" : fname : "--gwpo" : []) _ _ = (Termination fname ReductionOrder.GWPO, defaultConfig)
--- parseArgs' ("--termination" : fname : "--gwpoN" : []) _ _ = (Termination fname ReductionOrder.GWPON, defaultConfig)
--- parseArgs' ("--termination" : fname : "--gwpo01" : []) _ _ = (Termination fname ReductionOrder.GWPO01, defaultConfig)
--- parseArgs' ("--termination" : fname : "--wpo" : []) _ _ = (Termination fname ReductionOrder.WPO, defaultConfig)
--- parseArgs' ("--termination" : fname : "--lpo-via-gwpo" : []) _ _ = (Termination fname ReductionOrder.LPOviaGWPO, defaultConfig)
 -- prover
 parseArgs' ("--casc" : fname : _) _ _ = (UEQ fname, cascConfig) -- config for CASC UEQ
 parseArgs' ("--ueq" : fname : args) _ c = parseArgs' args (UEQ fname) c
@@ -148,14 +137,6 @@ handleHelp = do
   -- putStrLn "$ toma --ordered-completion group.trs          # LPO "
   -- putStrLn "$ toma --ordered-completion group.trs --lpo    # LPO"
   -- putStrLn "$ toma --ordered-completion group.trs --gwpo01 # GWPO with linear polynomial interpretation over {0, 1} for coefficients and N for constants"
-  -- putStrLn "termination checking with reduction orders: "
-  -- putStrLn "$ toma --termination ack.trs                 # the same as --gwpo"
-  -- putStrLn "$ toma --termination ack.trs --lpo           # LPO"
-  -- putStrLn "$ toma --termination ack.trs --gwpoN         # GWPO with linear polynomial interpretation over N"
-  -- putStrLn "$ toma --termination ack.trs --gwpo01        # GWPO with linear polynomial interpretation over {0, 1} for coefficients and N for constants"
-  -- putStrLn "$ toma --termination ack.trs --gwpo          # first tries --gwpo01, and then --gwpoN"
-  -- putStrLn "$ toma --termination ack.trs --wpo           # WPO with linear polynomial interpretation over N"
-  -- putStrLn "$ toma --termination ack.trs --lpo-via-gwpo  # LPO simulation via GWPO"
   putStrLn "$ toma inverse_unit.p --skip-order-search 10 # order search is skipped after 10 iteration.  by default order search is never skippped."
   putStrLn "ordered completion with various reduction orders, with easy-to-parse output of completion."
   putStrLn "$ toma --completion-with-parsable-output group.trs"
@@ -498,17 +479,6 @@ handleINF fname conf = do
               p <- prove (setTermPrinter tp conf) goal' es
               printINFProof tp (pes, goal) goal'  p
 
-handleTermination :: String -> ReductionOrder.Class -> IO ()
-handleTermination _fname _conf = notSupported
--- handleTermination fname conf = do
---   parseres <- readTRSFile fname
---   case parseres of
---     Left e -> do
---       putStdErr "ERROR"
---       putStdErr (show e)
---     Right (trs, _mu) ->
---       terminationChecker conf trs
-
 rmdups :: ES -> ES
 rmdups [] = []
 rmdups (x@(E {eqn_id}):xs)   | eqn_id `List.elem` [eqn_id | E { eqn_id } <- xs]   = rmdups xs
@@ -606,7 +576,6 @@ dispatch (UEQ fname, conf) = handleUEQ fname conf
 dispatch (Waldmeister fname, conf) = handleWaldmeister fname conf
 dispatch (TPTP fname, conf) = handleTPTP fname conf
 dispatch (INF fname, conf) = handleINF fname conf
-dispatch (Termination fname tconf, _conf) = handleTermination fname tconf
 dispatch (CompletionWithParsableOutput fname, conf) = handleCompletionWithParsableOutput fname conf
 dispatch (Parsable goal fname, conf) = handleParsable goal fname conf
 
