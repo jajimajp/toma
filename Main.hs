@@ -28,7 +28,6 @@ data Mode = UEQ String
           | INF String
           | Help
           | Waldmeister String
-          | OrderedCompletion String
           | Termination String (ReductionOrder.Class)
           | CompletionWithParsableOutput String
           | Parsable String String
@@ -86,8 +85,6 @@ parseArgs' ("--ueq" : fname : args) _ c = parseArgs' args (UEQ fname) c
 -- parseArgs' ("--tptp" : fname : args) _ c = parseArgs' args (TPTP fname) c
 parseArgs' ("--inf" : fname : args) _ c = parseArgs' args (INF fname) c
 parseArgs' ("--waldmeister" : fname : args) _ c = parseArgs' args (Waldmeister fname) c
--- ordered completion
--- parseArgs' ("--ordered-completion" : fname : args) _ c = parseArgs' args (OrderedCompletion fname) c
 -- options
 parseArgs' ("--skip-order-search" : n : args) m c = 
   parseArgs' args m (Config { inter_reduction = inter_reduction c, order_class = order_class c, verbose = verbose c, termPrinter = termPrinter c, groundCompletion = groundCompletion c, n_skip_order_search = Just (read n) })
@@ -501,36 +498,6 @@ handleINF fname conf = do
               p <- prove (setTermPrinter tp conf) goal' es
               printINFProof tp (pes, goal) goal'  p
 
--- printOrderedCompletionProof :: PE -> Proof -> IO ()
--- printOrderedCompletionProof fake_goal (Prover.Join {}) = do
---   putStrLn "ERROR"
---   putStrLn ("The joinability of the fake goal " ++ (showPE fake_goal) ++ " implies the existence of a bug.")
--- printOrderedCompletionProof fake_goal (Prover.Complete { proof_es, proof_reduction_order_param }) = do
---   putStrLn "YES"
---   putStrLn "The ES admits the following ground-complete ordered rewrite system:"
---   putStrLn (show proof_reduction_order_param)
---   putStrLn "ES:"
---   putStrLn (showOTRS (param2ord proof_reduction_order_param) proof_es)
---   putStrLn ""
---   putStrLn ("Note that new symbols are introduced by the fake goal " ++ (showPE fake_goal) ++ ".")
--- printOrderedCompletionProof _ Failure = do
---   putStrLn "ERROR"
---   putStrLn "completion failed"
-
-handleOrderedCompletion :: String -> Prover.Config -> IO ()
-handleOrderedCompletion _ _ = notSupported
--- handleOrderedCompletion fname conf = do
---   result <- readTRSFile fname
---   case result of
---     Left e -> do
---       putStdErr "ERROR"
---       putStdErr (show e)
---     Right (pes, _mu) -> do
---       let axs = axioms pes
---       let fake_goal = fakeGoal pes
---       p <- prove conf fake_goal axs
---       printOrderedCompletionProof fake_goal p
-
 handleTermination :: String -> ReductionOrder.Class -> IO ()
 handleTermination _fname _conf = notSupported
 -- handleTermination fname conf = do
@@ -639,7 +606,6 @@ dispatch (UEQ fname, conf) = handleUEQ fname conf
 dispatch (Waldmeister fname, conf) = handleWaldmeister fname conf
 dispatch (TPTP fname, conf) = handleTPTP fname conf
 dispatch (INF fname, conf) = handleINF fname conf
-dispatch (OrderedCompletion fname, conf) = handleOrderedCompletion fname conf
 dispatch (Termination fname tconf, _conf) = handleTermination fname tconf
 dispatch (CompletionWithParsableOutput fname, conf) = handleCompletionWithParsableOutput fname conf
 dispatch (Parsable goal fname, conf) = handleParsable goal fname conf
