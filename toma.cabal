@@ -6,6 +6,6 @@ cabal-version:       >=1.10
 executable toma
   hs-source-dirs: .
   main-is:             Main.hs
-  other-modules:       Term TPTP 
+  other-modules:       Term TPTP CES CP Derivation E ES INFParser INFProblem Join KBCompletion LPO LPOEncoding MapUtil PE PES ParserTerm Prover ReductionOrder Rewriting SMT SMTParser SplitIf Substitution TRSParser UEQParser Util Z3
   build-depends:       base, parsec, process, directory, containers, bytestring, heap
   default-language:    Haskell2010
