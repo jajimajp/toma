@@ -1,5 +1,5 @@
 TOOL=toma
-VERSION = 0.7+PARSABLE
+VERSION = 0.8+PARSABLE
 all:
 	ghc -O -Wall -Wno-unused-imports -o $(TOOL) Main
 

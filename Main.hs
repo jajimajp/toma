@@ -84,7 +84,7 @@ parseArgs :: [String] -> (Mode, Prover.Config)
 parseArgs args = parseArgs' args Help defaultConfig
 
 version :: String
-version = "0.7+PARSABLE"
+version = "0.8+PARSABLE"
 
 notSupported :: IO ()
 notSupported = printf "not supported in the version %s.\n" version

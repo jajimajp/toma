@@ -58,9 +58,9 @@ depE (E {eqn_derivation = Axiom}) = []
 depE (E {eqn_derivation = CP i1 i2 _sp, eqn_id = i })
   = [(i, i1), (i, i2)]
 depE (E {eqn_derivation = Simp { original, rw_r, rw_l}, eqn_id = i})
-  = (i, original) : [ (i, i') | i' <- rw_r ] ++ [ (i, i') | i' <- rw_l ]
+  = (i, original) : [ (i, i') | (i', _, _) <- rw_r ] ++ [ (i, i') | (i', _, _) <- rw_l ]
 depE (E {eqn_derivation = Goal { rw_r, rw_l }, eqn_id = i})
-  = [ (i, i') | i' <- rw_r ] ++ [ (i, i') | i' <- rw_l ]
+  = [ (i, i') | (i', _, _) <- rw_r ] ++ [ (i, i') | (i', _, _) <- rw_l ]
 
 isCommutative :: E -> Bool
 isCommutative = PE.isCommutative . eqn

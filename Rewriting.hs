@@ -1,14 +1,26 @@
 module Rewriting (nf) where
 
-import qualified E as E
+import qualified E
 import ES
 import Substitution as S
-import Term
+import Term ( app, Function, Term(..), TermOrder, showTerm )
+import qualified Data.Map as Map
+import qualified Data.ByteString.Builder as BSB
+import Derivation
 
 -- innermost rewriting
 
 data MarkedTerm = NF Term
                 | Active Function [MarkedTerm]
+
+
+-- replace nth(0-indexed) argument of a term.
+replace :: Term -> Int -> Term -> Term
+replace (V _ _) _ _ = error "replace: variable"
+replace (F f ts s) n t = F f (replace' ts n t) s
+  where replace' [] _ _ = error "replace: out of bound"
+        replace' (t' : ts') 0 t = t : ts'
+        replace' (t' : ts') n t = t' : replace' ts' (n - 1) t
 
 -- special subsitute for innermost rewriting
 substitute :: Term -> Subst -> MarkedTerm
@@ -19,18 +31,23 @@ activate :: Term -> MarkedTerm
 activate t@(V _ _) = NF t
 activate (F f ts _) = Active f [ activate t | t <- ts ]
 
+termOfMarkedTerm :: MarkedTerm -> Term
+termOfMarkedTerm (NF t) = t
+termOfMarkedTerm (Active f ts) = app f (map termOfMarkedTerm ts)
+
 -- give priority to oriented.
-rewriteAtRoot :: ES -> ES -> TermOrder -> Term -> (Maybe Int, MarkedTerm)
+rewriteAtRoot :: ES -> ES -> TermOrder -> Term -> (Maybe TermRewriteStep, MarkedTerm)
 rewriteAtRoot [] [] _gt t = (Nothing, NF t)
 rewriteAtRoot (e@(E.E { E.eqn_id = i }) : oriented) unoriented gt t
-  | E.oriented e, Just (l, r) <- E.rule e, Just sig <- match l t = (Just i, Rewriting.substitute r sig)
+  | E.oriented e, Just (l, r) <- E.rule e, Just sig <- match l t =
+    (Just (i, t, S.substitute r sig), Rewriting.substitute r sig)
   | E.oriented e = rewriteAtRoot oriented unoriented gt t -- oriented but failed pattern-matching
   | otherwise = error "rewriteAtRoot: oriented is not oriented."
 rewriteAtRoot [] (E.E { E.eqn = (l, r), E.eqn_id = i, E.eqn_orientation = E.Unoriented } : unoriented) gt t
-  | Just sig <- match l t,  (S.substitute l sig) `gt` (S.substitute r sig)
-    = (Just i, Rewriting.substitute r sig)
-  | Just sig <- match r t, (S.substitute r sig) `gt` (S.substitute l sig)
-    = (Just i, Rewriting.substitute l sig)
+  | Just sig <- match l t,  S.substitute l sig `gt` S.substitute r sig
+    = (Just (i, t, S.substitute r sig), Rewriting.substitute r sig)
+  | Just sig <- match r t, S.substitute r sig `gt` S.substitute l sig
+    = (Just (i, t, S.substitute l sig), Rewriting.substitute l sig)
   | otherwise = rewriteAtRoot [] unoriented gt t
 rewriteAtRoot [] (e : _) _gt _t
   | E.oriented e = error "rewriteAtRoot: unoriented is oriented."
@@ -51,33 +68,58 @@ rewriteAtRoot _ _ _ _ = error "rewriteAtRoot"
 -- returns [(b), (a), (b), (a)]. This should be what users expect.
 -- TODO: add more clear example here
 
-nfArgs' :: ES -> ES -> TermOrder -> [MarkedTerm] -> [([Int], Term)] -> ([Int], [Term])
--- NOTE: args are parallel. So we don't need to reverse id_acc.
-nfArgs' _ _ _ [] id_term_acc = (Prelude.concat id_acc, reverse term_acc)
-  where
-    id_acc = map fst id_term_acc
-    term_acc = map snd id_term_acc
+nfArgs' :: ES -> ES -> TermOrder -> [MarkedTerm] -> [([TermRewriteStep], Term)] -> [([TermRewriteStep], Term)]
+nfArgs' _ _ _ [] id_term_acc = reverse id_term_acc
 nfArgs' oriented unoriented gt (t : ts) id_term_acc
   = nfArgs' oriented unoriented gt ts (nf' oriented unoriented gt t : id_term_acc)
 
-nfArgs :: ES -> ES -> TermOrder -> [MarkedTerm] -> ([Int], [Term])
+nfArgs :: ES -> ES -> TermOrder -> [MarkedTerm] -> [([TermRewriteStep], Term)]
 nfArgs oriented unoriented gt ts = nfArgs' oriented unoriented gt ts []
 
-nf'' :: ES -> ES -> TermOrder -> [Int] -> MarkedTerm -> ([Int], Term)
-nf'' _ _ _ id_acc (NF t) = (id_acc, t)
-nf'' oriented unoriented gt id_acc (Active f ts) =
-  case rewriteAtRoot oriented unoriented gt (app f nf_args) of
-    (Just i, mt)    -> nf'' oriented unoriented gt (i : arg_ids ++ id_acc) mt
-    (Nothing, NF t) -> (arg_ids ++ id_acc, t)
-    _               -> error "nf"
-  where (arg_ids, nf_args) = nfArgs oriented unoriented gt ts
+-- [wrapSteps' t n arg_steps acc] は t の TermRewriteStep を算出する。
+-- n 番目 (0-indexed) の subterm について置き換えを行う。n + len arg_steps は t の subterm の数と等しい。
+wrapSteps' :: Term -> Int -> [([TermRewriteStep], Term)] -> [[TermRewriteStep]] -> ([TermRewriteStep], Term)
+wrapSteps' t n [] acc =
+  if length acc == n
+  then (concat (reverse acc), t)
+  else error "wrapSteps': out of bound"
+wrapSteps' t n ((steps, s) : ss) acc = wrapSteps' t' (n + 1) ss (steps' : acc)
+  where t' = replace t n s
+        steps' = map (\(i, from, to) -> (i, replace t n from, replace t n to)) steps
+        -- steps' = steps -- TODO
 
-nf' :: ES -> ES -> TermOrder -> MarkedTerm -> ([Int], Term)
-nf' oriented unoriented gt t = nf'' oriented unoriented gt [] t
+-- [wrapSteps t arg_steps] は t の TermRewriteStep を算出する。
+-- t が V のとき、arg_steps は空でなければならない。
+-- t が F のとき、t の subterm それぞれが arg_steps の書換によって変わっていくので、これらを順に適用して t の steps を組み立てる。
+wrapSteps :: Term -> [([TermRewriteStep], Term)] -> ([TermRewriteStep], Term)
+wrapSteps (V _ _) _ = error "wrapSteps: variable"
+wrapSteps (F f ts s) arg_steps = (steps, f')
+  -- TODO: the 2nd return value was meant to be f' but it does not work (nf does not terminate).
+  where (steps, _) = wrapSteps' (F f ts s) 0 arg_steps []
+        f' = app f (map snd arg_steps)
+
+
+nf'' :: ES -> ES -> TermOrder -> [TermRewriteStep] -> MarkedTerm -> ([TermRewriteStep], Term)
+nf'' _ _ _ id_acc (NF t) = (id_acc, t)
+nf'' oriented unoriented gt steps_acc (Active f ts) =
+  case rewriteAtRoot oriented unoriented gt new_t of
+    (Just step, mt) -> nf'' oriented unoriented gt (steps_acc ++ steps ++ [step]) mt
+    (Nothing, NF t) -> (steps_acc ++ steps, t)
+    _               -> error "nf"
+  -- where rewritten = nfArgs oriented unoriented gt ts
+  --       (steps', nf_args) = unzip rewritten
+  --       steps = concat steps'
+  where rewritten = nfArgs oriented unoriented gt ts
+        -- ts' = map snd rewritten
+        (steps, new_t) = wrapSteps (app f (map termOfMarkedTerm ts)) rewritten
+        -- new_t = app f ts'
+
+nf' :: ES -> ES -> TermOrder -> MarkedTerm -> ([TermRewriteStep], Term)
+nf' oriented unoriented gt = nf'' oriented unoriented gt []
 
 -- returns (eqn_ids, t)
 -- eqn_ids are sorted from earlier to later in innermost rewriting.
 -- NOTE: oriented and unoriented are separated in advance to avoid the cost of sorting.
-nf :: ES -> ES -> TermOrder -> Term -> ([Int], Term)
-nf oriented unoriented gt t = (reverse ids, t') -- NOTE: reverse must be done only once here.
-  where (ids, t') = nf' oriented unoriented gt (activate t)
+nf :: ES -> ES -> TermOrder -> Term -> ([TermRewriteStep], Term)
+nf oriented unoriented gt t = (steps, t')
+  where (steps, t') = nf' oriented unoriented gt (activate t)

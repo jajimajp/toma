@@ -24,6 +24,7 @@ import Control.Monad
 import qualified Data.ByteString.Builder as BSB
 import Data.Monoid ((<>)) -- redundant, but for VSCode simple haskell integration
 import System.IO
+import qualified CP as BSB
 
 -- NOTE: The prefix "proof_" is to avoid shadow-binding warnings.
 data Proof = Join { proof_goal :: E.E, proof_es :: ES, proof_reduction_order_param :: ReductionOrderParam, proof_deleted_es :: ES }
@@ -251,22 +252,22 @@ prove' args@(ProverArgs { conf, iteration_n, next_id, goal = goal@(s, t), initES
   let (oriented, unoriented) = ES.separate gt currentES
   when (verbose conf) (BSB.hPutBuilder stdout (BSB.string7 "performing inter-reduction...\n"))
   let (next_id', oriented', unoriented', deleted') = if inter_reduction conf
-                                                    then interreduce next_id oriented unoriented order_param 
+                                                    then interreduce next_id oriented unoriented order_param
                                                     else (next_id, oriented, unoriented, [])
   when (verbose conf)
        (BSB.hPutBuilder stdout (BSB.string7 "# of equations: " <> BSB.intDec (length currentES) <> BSB.string7 " -> " <> BSB.intDec (length (oriented' ++ unoriented')) <> BSB.string7 "\n"))
   let next_deleted = deleted' ++ deleted
   when (verbose conf) (BSB.hPutBuilder stdout (BSB.string7 "rewriting the goal...\n"))
-  let (rw_s, nf_s) = nf oriented' unoriented' gt s
+  let (steps_s, nf_s) = nf oriented' unoriented' gt s
   when (verbose conf) (BSB.hPutBuilder stdout (BSB.string7 "the lhs " <> showTerm (termPrinter conf) s <> BSB.string7 " is rewritten to " <> showTerm (termPrinter conf) nf_s <> BSB.string7 "\n"))
-  let (rw_t, nf_t) = nf oriented' unoriented' gt t
+  let (steps_t, nf_t) = nf oriented' unoriented' gt t
   when (verbose conf) (BSB.hPutBuilder stdout (BSB.string7  "the rhs " <> showTerm (termPrinter conf) t <> BSB.string7 " is rewritten to " <> showTerm (termPrinter conf) nf_t <> BSB.string7 "\n"))
   when (verbose conf) (BSB.hPutBuilder stdout (BSB.string7 "generating lemmata...\n"))
   let (next_id'', nextES) = addLemmata next_id' oriented' unoriented' order_param
   -- First, the prover checks if s and t are joinable.
   if nf_s == nf_t
     then let
-           d = Goal { rw_l = rw_s, rw_r = rw_t }
+           d = Goal { rw_l = steps_s, rw_r = steps_t }
            g' = E.E { E.eqn = goal, E.eqn_id = next_id', E.eqn_derivation = d, E.eqn_orientation = E.Unoriented }
           in return (Join { proof_goal = g', proof_es = oriented' ++ unoriented', proof_reduction_order_param = order_param, proof_deleted_es =  next_deleted })
     else if groundCompletion conf &&

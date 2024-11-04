@@ -39,7 +39,7 @@ For the help message, type `$ ./toma -h`.
 
 ## What is changed from original version
 
-This customized version (v0.7+PARSABLE) comes with `--completion-with-parsable-output` option.
+This customized version (v0.8+PARSABLE) comes with `--completion-with-parsable-output` option.
 
 ```bash
 ./toma --completion-with-parsable-output examples/group/group.trs
