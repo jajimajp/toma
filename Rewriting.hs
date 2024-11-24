@@ -3,10 +3,11 @@ module Rewriting (nf) where
 import qualified E
 import ES
 import Substitution as S
-import Term ( app, Function, Term(..), TermOrder, showTerm )
+import Term ( app, Function, Term(..), TermOrder, showTerm, Position )
 import qualified Data.Map as Map
 import qualified Data.ByteString.Builder as BSB
 import Derivation
+import qualified Data.Bifunctor
 
 -- innermost rewriting
 
@@ -40,18 +41,18 @@ rewriteAtRoot :: ES -> ES -> TermOrder -> Term -> (Maybe TermRewriteStep, Marked
 rewriteAtRoot [] [] _gt t = (Nothing, NF t)
 rewriteAtRoot (e@(E.E { E.eqn_id = i }) : oriented) unoriented gt t
   | E.oriented e, Just (l, r) <- E.rule e, Just sig <- match l t =
-    (Just (i, t, S.substitute r sig), Rewriting.substitute r sig)
+    (Just (i, []), Rewriting.substitute r sig)
   | E.oriented e = rewriteAtRoot oriented unoriented gt t -- oriented but failed pattern-matching
   | otherwise = error "rewriteAtRoot: oriented is not oriented."
 rewriteAtRoot [] (E.E { E.eqn = (l, r), E.eqn_id = i, E.eqn_orientation = E.Unoriented } : unoriented) gt t
   | Just sig <- match l t,  S.substitute l sig `gt` S.substitute r sig
-    = (Just (i, t, S.substitute r sig), Rewriting.substitute r sig)
+    = (Just (i, []), Rewriting.substitute r sig)
   | Just sig <- match r t, S.substitute r sig `gt` S.substitute l sig
-    = (Just (i, t, S.substitute l sig), Rewriting.substitute l sig)
+    = (Just (i, []), Rewriting.substitute l sig)
   | otherwise = rewriteAtRoot [] unoriented gt t
 rewriteAtRoot [] (e : _) _gt _t
   | E.oriented e = error "rewriteAtRoot: unoriented is oriented."
-rewriteAtRoot _ _ _ _ = error "rewriteAtRoot"
+rewriteAtRoot __ _ _ _ = error "rewriteAtRoot"
 
 -- NOTE:
 -- [Int] is the eqn_ids of E used to nf a term.
@@ -77,7 +78,7 @@ nfArgs :: ES -> ES -> TermOrder -> [MarkedTerm] -> [([TermRewriteStep], Term)]
 nfArgs oriented unoriented gt ts = nfArgs' oriented unoriented gt ts []
 
 -- [wrapSteps' t n arg_steps acc] は t の TermRewriteStep を算出する。
--- n 番目 (0-indexed) の subterm について置き換えを行う。n + len arg_steps は t の subterm の数と等しい。
+-- n は 0-indexed
 wrapSteps' :: Term -> Int -> [([TermRewriteStep], Term)] -> [[TermRewriteStep]] -> ([TermRewriteStep], Term)
 wrapSteps' t n [] acc =
   if length acc == n
@@ -85,8 +86,7 @@ wrapSteps' t n [] acc =
   else error "wrapSteps': out of bound"
 wrapSteps' t n ((steps, s) : ss) acc = wrapSteps' t' (n + 1) ss (steps' : acc)
   where t' = replace t n s
-        steps' = map (\(i, from, to) -> (i, replace t n from, replace t n to)) steps
-        -- steps' = steps -- TODO
+        steps' = map (Data.Bifunctor.second (n :)) steps
 
 -- [wrapSteps t arg_steps] は t の TermRewriteStep を算出する。
 -- t が V のとき、arg_steps は空でなければならない。
