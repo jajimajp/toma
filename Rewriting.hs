@@ -41,14 +41,14 @@ rewriteAtRoot :: ES -> ES -> TermOrder -> Term -> (Maybe TermRewriteStep, Marked
 rewriteAtRoot [] [] _gt t = (Nothing, NF t)
 rewriteAtRoot (e@(E.E { E.eqn_id = i }) : oriented) unoriented gt t
   | E.oriented e, Just (l, r) <- E.rule e, Just sig <- match l t =
-    (Just (i, []), Rewriting.substitute r sig)
+    (Just (i, [], L2R), Rewriting.substitute r sig)
   | E.oriented e = rewriteAtRoot oriented unoriented gt t -- oriented but failed pattern-matching
   | otherwise = error "rewriteAtRoot: oriented is not oriented."
 rewriteAtRoot [] (E.E { E.eqn = (l, r), E.eqn_id = i, E.eqn_orientation = E.Unoriented } : unoriented) gt t
   | Just sig <- match l t,  S.substitute l sig `gt` S.substitute r sig
-    = (Just (i, []), Rewriting.substitute r sig)
+    = (Just (i, [], L2R), Rewriting.substitute r sig)
   | Just sig <- match r t, S.substitute r sig `gt` S.substitute l sig
-    = (Just (i, []), Rewriting.substitute l sig)
+    = (Just (i, [], R2L), Rewriting.substitute l sig)
   | otherwise = rewriteAtRoot [] unoriented gt t
 rewriteAtRoot [] (e : _) _gt _t
   | E.oriented e = error "rewriteAtRoot: unoriented is oriented."
@@ -86,7 +86,7 @@ wrapSteps' t n [] acc =
   else error "wrapSteps': out of bound"
 wrapSteps' t n ((steps, s) : ss) acc = wrapSteps' t' (n + 1) ss (steps' : acc)
   where t' = replace t n s
-        steps' = map (Data.Bifunctor.second (n :)) steps
+        steps' = map (\(i, pos, dir) -> (i, n : pos, dir)) steps
 
 -- [wrapSteps t arg_steps] は t の TermRewriteStep を算出する。
 -- t が V のとき、arg_steps は空でなければならない。
